@@ -7,7 +7,6 @@ client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 # 스트림릿 앱 설정
 st.set_page_config(page_title="고급 챗봇", layout="wide")
-st.title("고급 챗봇")
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
@@ -24,7 +23,7 @@ def generate_response(messages):
     full_response = ""
     message_placeholder = st.empty()
     for chunk in client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4",
         messages=messages,
         stream=True,
     ):
@@ -36,38 +35,49 @@ def generate_response(messages):
     return full_response
 
 # 메인 UI
+st.title("고급 챗봇")
+
+# 채팅 히스토리를 표시할 컨테이너
 chat_container = st.container()
 
+# 입력 필드를 화면 하단에 고정
+input_container = st.container()
+
+# 채팅 히스토리 표시
 with chat_container:
-    # 기존 메시지 표시
     display_chat_messages()
 
-    # 새 사용자 입력 처리
+# 새 사용자 입력 처리
+with input_container:
     if prompt := st.chat_input("메시지를 입력하세요"):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        with chat_container:
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
-        # 챗봇 응답 생성 및 표시
-        with st.chat_message("assistant"):
-            messages_for_api = [{"role": "system", "content": "You are a helpful assistant."}] + st.session_state.messages
-            response = generate_response(messages_for_api)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            # 챗봇 응답 생성 및 표시
+            with st.chat_message("assistant"):
+                messages_for_api = [{"role": "system", "content": "You are a helpful assistant."}] + st.session_state.messages
+                response = generate_response(messages_for_api)
+                st.session_state.messages.append({"role": "assistant", "content": response})
 
-# CSS를 사용하여 입력창을 화면 하단에 고정
+# CSS를 사용하여 레이아웃 조정
 st.markdown("""
 <style>
-.stTextInput {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 1rem;
+.stChatFloatingInputContainer {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     background-color: white;
+    padding: 1rem;
     z-index: 1000;
 }
-.stChatFloatingInputContainer {
-    bottom: 3rem !important;
+.stChatInputContainer {
+    padding-bottom: 0 !important;
+}
+.main {
+    padding-bottom: 4rem;
 }
 </style>
 """, unsafe_allow_html=True)
