@@ -11,43 +11,39 @@ st.write(
 # Get the OpenAI API key from Streamlit secrets
 openai.api_key = st.secrets["openai_api_key"]
 
-# Create a session state variable to store the chat messages. This ensures that the
-# messages persist across reruns.
+# Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display the existing chat messages
+# Display chat messages
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    st.text(f"{message['role'].capitalize()}: {message['content']}")
 
-# Create a text input field for the user's message
-prompt = st.text_input("Your message:", key="user_input")
+# User input
+user_input = st.text_input("Your message:", key="user_input")
 
 # Send button
 if st.button("Send"):
-    if prompt:
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+    if user_input:
+        # Append user message
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        st.text(f"User: {user_input}")
 
-        # Generate a response using the OpenAI API.
+        # Generate response
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-4o-mini",  # 이 부분을 "gpt-4"로 변경했습니다.
+                model="gpt-4",
                 messages=[
                     {"role": m["role"], "content": m["content"]}
                     for m in st.session_state.messages
                 ],
             )
 
-            # Display and store the assistant's response
+            # Get and display assistant's response
             assistant_response = response.choices[0].message['content']
-            with st.chat_message("assistant"):
-                st.markdown(assistant_response)
             st.session_state.messages.append({"role": "assistant", "content": assistant_response})
-        
+            st.text(f"Assistant: {assistant_response}")
+
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
 
