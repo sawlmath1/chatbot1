@@ -1,110 +1,70 @@
 import streamlit as st
-from openai import OpenAI
+import openai
 import time
 
-# OpenAI 클라이언트 초기화
-client = OpenAI(api_key=st.secrets["openai_api_key"])
+# Streamlit 페이지 설정
+st.set_page_config(page_title="AI Chatbot", page_icon=":robot_face:")
 
-# 스트림릿 앱 설정
-st.set_page_config(page_title="고급 챗봇", layout="wide")
+# OpenAI API 키 설정
+openai.api_key = st.secrets["openai_api_key"]
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 챗봇 응답 생성 함수 (스트리밍)
-def generate_response(messages):
-    full_response = ""
-    message_placeholder = st.empty()
-    for chunk in client.chat.completions.create(
-        model="gpt-4o-mini",
+if "openai_model" not in st.session_state:
+    st.session_state.openai_model = "gpt-3.5-turbo"
+
+# 함수: OpenAI API를 사용하여 응답 생성
+def generate_response(prompt):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+    ]
+    
+    # 이전 대화 내역 10개 추가
+    for message in st.session_state.messages[-10:]:
+        messages.append({"role": "user" if message["is_user"] else "assistant", "content": message["content"]})
+    
+    messages.append({"role": "user", "content": prompt})
+
+    response = openai.ChatCompletion.create(
+        model=st.session_state.openai_model,
         messages=messages,
-        stream=True,
-    ):
-        if chunk.choices[0].delta.content is not None:
-            full_response += chunk.choices[0].delta.content
-            message_placeholder.markdown(full_response + "▌")
-            time.sleep(0.01)
-    message_placeholder.markdown(full_response)
-    return full_response
+        stream=True
+    )
 
-# CSS를 사용하여 레이아웃 조정
-st.markdown("""
-<style>
-/* 전체 페이지를 Flex 레이아웃으로 설정 */
-.main {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    padding: 0;
-    margin: 0;
-}
-/* 제목 스타일 */
-.title {
-    flex: 0 0 auto;
-    padding: 1rem;
-    background-color: #f9f9f9;
-    border-bottom: 1px solid #ddd;
-    text-align: center;
-}
-/* 채팅 컨테이너 */
-.chat-container {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-}
-/* 입력 컨테이너 */
-.input-container {
-    flex: 0 0 auto;
-    padding: 1rem;
-    border-top: 1px solid #ddd;
-    background-color: #f9f9f9;
-}
-.stChatMessage {
-    margin-bottom: 1rem;
-}
-/* Streamlit 기본 패딩 제거 */
-.block-container {
-    padding-top: 0;
-    padding-bottom: 0;
-    padding-left: 0;
-    padding-right: 0;
-}
-.stChatFloatingInputContainer {
-    padding-bottom: 0 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+    return response
 
-# 메인 레이아웃
-main = st.container()
-with main:
-    # 상단의 제목
-    st.markdown('<div class="title"><h1>고급 챗봇</h1></div>', unsafe_allow_html=True)
-    
-    # 채팅 메시지 영역
-    chat_container = st.container()
-    with chat_container:
-        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 화면 하단에 고정된 입력 필드
-    input_container = st.container()
-    with input_container:
-        st.markdown('<div class="input-container">', unsafe_allow_html=True)
-        if prompt := st.chat_input("메시지를 입력하세요"):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with chat_container:
-                with st.chat_message("user"):
-                    st.markdown(prompt)
-                # 챗봇 응답 생성 및 표시
-                with st.chat_message("assistant"):
-                    messages_for_api = [{"role": "system", "content": "You are a helpful assistant."}] + st.session_state.messages
-                    response = generate_response(messages_for_api)
-                    st.session_state.messages.append({"role": "assistant", "content": response})
-        st.markdown('</div>', unsafe_allow_html=True)
+# 스트림릿 UI
+st.title("AI Chatbot")
+
+# 사용자 입력
+user_input = st.text_input("메시지를 입력하세요:", key="user_input")
+
+# Enter 키 처리
+if user_input and user_input != st.session_state.get("previous_input", ""):
+    st.session_state.messages.append({"content": user_input, "is_user": True})
+    st.session_state.previous_input = user_input
+
+    with st.spinner("AI가 응답하는 중..."):
+        response = generate_response(user_input)
+        ai_response = ""
+        message_placeholder = st.empty()
+        
+        for chunk in response:
+            if chunk.choices[0].delta.get("content"):
+                ai_response += chunk.choices[0].delta.content
+                message_placeholder.markdown(ai_response + "▌")
+                time.sleep(0.01)
+        
+        message_placeholder.markdown(ai_response)
+        st.session_state.messages.append({"content": ai_response, "is_user": False})
+
+# 대화 내역 표시
+for i, msg in enumerate(reversed(st.session_state.messages)):
+    st.text_area(f"{'You' if msg['is_user'] else 'AI'}", value=msg["content"], height=100, key=f"message_{i}", disabled=True)
+
+# 대화 내역 초기화 버튼
+if st.button("대화 내역 초기화"):
+    st.session_state.messages = []
+    st.experimental_rerun()
