@@ -17,7 +17,7 @@ def generate_response(messages):
     full_response = ""
     message_placeholder = st.empty()
     for chunk in client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-4o-mini",
         messages=messages,
         stream=True,
     ):
