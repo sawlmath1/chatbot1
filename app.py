@@ -1,8 +1,8 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 
-# Streamlit Secrets에서 OpenAI API 키 가져오기
-openai.api_key = st.secrets["openai_api_key"]
+# OpenAI 클라이언트 초기화
+client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 # 스트림릿 앱 제목 설정
 st.title("고급 챗봇")
@@ -16,11 +16,11 @@ user_input = st.text_input("메시지를 입력하세요:")
 
 # 챗봇 응답 함수
 def get_bot_response(messages):
-    response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",  # 새로운 모델 사용
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
         messages=messages
     )
-    return response.choices[0].message['content']
+    return response.choices[0].message.content
 
 # 사용자가 메시지를 입력했을 때 처리
 if user_input:
