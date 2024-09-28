@@ -1,9 +1,9 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import time
 
-# OpenAI API 키 설정
-openai.api_key = st.secrets["openai_api_key"]
+# OpenAI 클라이언트 초기화
+client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 # 스트림릿 앱 설정
 st.set_page_config(page_title="고급 챗봇", layout="wide")
@@ -16,13 +16,12 @@ if "messages" not in st.session_state:
 def generate_response(messages):
     full_response = ""
     message_placeholder = st.empty()
-    response = openai.ChatCompletion.create(
+    for chunk in client.chat.completions.create(
         model="gpt-4",
         messages=messages,
         stream=True,
-    )
-    for chunk in response:
-        if "content" in chunk.choices[0].delta:
+    ):
+        if chunk.choices[0].delta.content is not None:
             full_response += chunk.choices[0].delta.content
             message_placeholder.markdown(full_response + "▌")
             time.sleep(0.01)
@@ -40,7 +39,6 @@ st.markdown("""
     padding-top: 0;
     padding-bottom: 0;
 }
-
 /* 제목 스타일 */
 h1 {
     flex: 0 0 auto;
@@ -52,14 +50,12 @@ h1 {
     z-index: 10;
     border-bottom: 1px solid #ddd;
 }
-
 /* 채팅 컨테이너 */
 .chat-container {
     flex: 1 1 auto;
     overflow-y: auto;
     padding: 1rem;
 }
-
 /* 입력 컨테이너 */
 .input-container {
     flex: 0 0 auto;
@@ -67,7 +63,6 @@ h1 {
     border-top: 1px solid #ddd;
     background-color: #f9f9f9;
 }
-
 .stChatMessage {
     margin-bottom: 1rem;
 }
