@@ -1,53 +1,39 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 
-# Show title and description.
 st.title("💬 Chatbot")
-st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-4 model to generate responses. "
-    "This app uses an OpenAI API key stored in Streamlit secrets. "
-)
+st.write("This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses.")
 
-# Get the OpenAI API key from Streamlit secrets
-openai.api_key = st.secrets["openai_api_key"]
+# OpenAI 클라이언트 생성
+client = OpenAI(api_key=st.secrets["openai_api_key"])
 
-# Initialize session state
+# 세션 상태 변수를 생성하여 채팅 메시지 저장
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat messages
+# 기존 채팅 메시지 표시
 for message in st.session_state.messages:
-    st.text(f"{message['role'].capitalize()}: {message['content']}")
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# User input
-user_input = st.text_input("Your message:", key="user_input")
+# 사용자 입력을 받기 위한 채팅 입력 필드 생성
+if prompt := st.chat_input("What is up?"):
+    # 현재 프롬프트 저장 및 표시
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-# Send button
-if st.button("Send"):
-    if user_input:
-        # Append user message
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        st.text(f"User: {user_input}")
+    # OpenAI API를 사용하여 응답 생성
+    stream = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.messages
+        ],
+        stream=True,
+    )
 
-        # Generate response
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": m["role"], "content": m["content"]}
-                    for m in st.session_state.messages
-                ],
-            )
-
-            # Get and display assistant's response
-            assistant_response = response.choices[0].message['content']
-            st.session_state.messages.append({"role": "assistant", "content": assistant_response})
-            st.text(f"Assistant: {assistant_response}")
-
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-
-# Clear chat button
-if st.button("Clear Chat"):
-    st.session_state.messages = []
-    st.experimental_rerun()
+    # 응답을 채팅에 스트리밍하고 세션 상태에 저장
+    with st.chat_message("assistant"):
+        response = st.write_stream(stream)
+    st.session_state.messages.append({"role": "assistant", "content": response})
