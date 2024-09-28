@@ -2,10 +2,9 @@ import streamlit as st
 from openai import OpenAI
 
 # Show title and description.
-st.title("💬 Chatbot")
+st.title("💬 수학 질문 챗봇")
 st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "You can chat with the bot below."
+    "저에게 수학문제를 질문해주세요."
 )
 
 # Create an OpenAI client using the API key from secrets.
