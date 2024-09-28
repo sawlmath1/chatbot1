@@ -1,70 +1,51 @@
 import streamlit as st
-import openai
-import time
+from openai import OpenAI
 
-# Streamlit 페이지 설정
-st.set_page_config(page_title="AI Chatbot", page_icon=":robot_face:")
+# Show title and description.
+st.title("💬 Chatbot")
+st.write(
+    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
+    "This app uses an OpenAI API key stored in Streamlit secrets. "
+    "You can learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+)
 
-# OpenAI API 키 설정
-openai.api_key = st.secrets["openai_api_key"]
+# Get the OpenAI API key from Streamlit secrets
+openai_api_key = st.secrets["openai_api_key"]
 
-# 세션 상태 초기화
+# Create an OpenAI client.
+client = OpenAI(api_key=openai_api_key)
+
+# Create a session state variable to store the chat messages. This ensures that the
+# messages persist across reruns.
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "openai_model" not in st.session_state:
-    st.session_state.openai_model = "gpt-3.5-turbo"
+# Display the existing chat messages via `st.chat_message`.
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# 함수: OpenAI API를 사용하여 응답 생성
-def generate_response(prompt):
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-    ]
-    
-    # 이전 대화 내역 10개 추가
-    for message in st.session_state.messages[-10:]:
-        messages.append({"role": "user" if message["is_user"] else "assistant", "content": message["content"]})
-    
-    messages.append({"role": "user", "content": prompt})
+# Create a chat input field to allow the user to enter a message. This will display
+# automatically at the bottom of the page.
+if prompt := st.chat_input("What is up?"):
 
-    response = openai.ChatCompletion.create(
-        model=st.session_state.openai_model,
-        messages=messages,
-        stream=True
+    # Store and display the current prompt.
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Generate a response using the OpenAI API.
+    stream = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.messages
+        ],
+        stream=True,
     )
 
-    return response
-
-# 스트림릿 UI
-st.title("AI Chatbot")
-
-# 사용자 입력
-user_input = st.text_input("메시지를 입력하세요:", key="user_input")
-
-# Enter 키 처리
-if user_input and user_input != st.session_state.get("previous_input", ""):
-    st.session_state.messages.append({"content": user_input, "is_user": True})
-    st.session_state.previous_input = user_input
-
-    with st.spinner("AI가 응답하는 중..."):
-        response = generate_response(user_input)
-        ai_response = ""
-        message_placeholder = st.empty()
-        
-        for chunk in response:
-            if chunk.choices[0].delta.get("content"):
-                ai_response += chunk.choices[0].delta.content
-                message_placeholder.markdown(ai_response + "▌")
-                time.sleep(0.01)
-        
-        message_placeholder.markdown(ai_response)
-        st.session_state.messages.append({"content": ai_response, "is_user": False})
-
-# 대화 내역 표시
-for i, msg in enumerate(reversed(st.session_state.messages)):
-    st.text_area(f"{'You' if msg['is_user'] else 'AI'}", value=msg["content"], height=100, key=f"message_{i}", disabled=True)
-
-# 대화 내역 초기화 버튼
-if st.button("대화 내역 초기화"):
-    st.session_state.messages = []
-    st.experimental_rerun()
+    # Stream the response to the chat using `st.write_stream`, then store it in 
+    # session state.
+    with st.chat_message("assistant"):
+        response = st.write_stream(stream)
+    st.session_state.messages.append({"role": "assistant", "content": response})
