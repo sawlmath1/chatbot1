@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 import time
 
-# OpenAI 클라이언트 초기화
+# OpenAI API 키 설정
 openai.api_key = st.secrets["openai_api_key"]
 
 # 스트림릿 앱 설정
@@ -25,13 +25,14 @@ def generate_response(messages):
         if "content" in chunk.choices[0].delta:
             full_response += chunk.choices[0].delta.content
             message_placeholder.markdown(full_response + "▌")
+            time.sleep(0.01)
     message_placeholder.markdown(full_response)
     return full_response
 
 # CSS를 사용하여 레이아웃 조정
 st.markdown("""
 <style>
-/* 메인 컨테이너를 Flex 레이아웃으로 설정 */
+/* 전체 페이지를 Flex 레이아웃으로 설정 */
 .block-container {
     display: flex;
     flex-direction: column;
@@ -46,6 +47,10 @@ h1 {
     margin: 0;
     padding: 1rem;
     background-color: #f9f9f9;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid #ddd;
 }
 
 /* 채팅 컨테이너 */
@@ -60,6 +65,7 @@ h1 {
     flex: 0 0 auto;
     padding: 1rem;
     border-top: 1px solid #ddd;
+    background-color: #f9f9f9;
 }
 
 .stChatMessage {
