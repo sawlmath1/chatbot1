@@ -1,31 +1,35 @@
 import streamlit as st
 from openai import OpenAI
 
+# Show title and description.
 st.title("💬 Chatbot")
-st.write("This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses.")
+st.write(
+    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
+    "You can chat with the bot below."
+)
 
-# OpenAI 클라이언트 생성
+# Create an OpenAI client using the API key from secrets.
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 
-# 세션 상태 변수를 생성하여 채팅 메시지 저장
+# Create a session state variable to store the chat messages.
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 기존 채팅 메시지 표시
+# Display the existing chat messages.
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 사용자 입력을 받기 위한 채팅 입력 필드 생성
+# Create a chat input field.
 if prompt := st.chat_input("What is up?"):
-    # 현재 프롬프트 저장 및 표시
+    # Store and display the current prompt.
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # OpenAI API를 사용하여 응답 생성
+    # Generate a response using the OpenAI API.
     stream = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {"role": m["role"], "content": m["content"]}
             for m in st.session_state.messages
@@ -33,7 +37,7 @@ if prompt := st.chat_input("What is up?"):
         stream=True,
     )
 
-    # 응답을 채팅에 스트리밍하고 세션 상태에 저장
+    # Stream the response to the chat and store it.
     with st.chat_message("assistant"):
         response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
