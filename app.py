@@ -34,9 +34,6 @@ st.title("고급 챗봇")
 # 채팅 히스토리를 표시할 컨테이너
 chat_container = st.container()
 
-# 빈 공간을 만들어 채팅 입력창을 아래로 밀기
-st.empty()
-
 # 입력 필드를 화면 하단에 고정
 input_container = st.container()
 
@@ -53,7 +50,6 @@ with input_container:
         with chat_container:
             with st.chat_message("user"):
                 st.markdown(prompt)
-
             # 챗봇 응답 생성 및 표시
             with st.chat_message("assistant"):
                 messages_for_api = [{"role": "system", "content": "You are a helpful assistant."}] + st.session_state.messages
@@ -71,15 +67,22 @@ st.markdown("""
     background-color: white;
     padding: 1rem;
     z-index: 1000;
+    box-shadow: 0px -2px 5px rgba(0,0,0,0.1);
 }
 .stChatInputContainer {
     padding-bottom: 0 !important;
 }
 .main {
-    padding-bottom: 80px;
+    padding-bottom: 100px;  /* 입력창 높이보다 약간 더 크게 설정 */
 }
 #root > div:nth-child(1) > div.withScreencast > div > div > div > section.main.css-uf99v8.egzxvld5 {
-    padding-bottom: 80px;
+    padding-bottom: 100px;  /* 입력창 높이보다 약간 더 크게 설정 */
+}
+.stChatMessage {
+    margin-bottom: 1rem;
 }
 </style>
 """, unsafe_allow_html=True)
+
+# 페이지 하단에 여백 추가
+st.markdown("<div style='height: 100px;'></div>", unsafe_allow_html=True)
