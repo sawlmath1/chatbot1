@@ -12,12 +12,6 @@ st.set_page_config(page_title="고급 챗봇", layout="wide")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 채팅 메시지 표시 함수
-def display_chat_messages():
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
 # 챗봇 응답 생성 함수 (스트리밍)
 def generate_response(messages):
     full_response = ""
@@ -40,12 +34,17 @@ st.title("고급 챗봇")
 # 채팅 히스토리를 표시할 컨테이너
 chat_container = st.container()
 
+# 빈 공간을 만들어 채팅 입력창을 아래로 밀기
+st.empty()
+
 # 입력 필드를 화면 하단에 고정
 input_container = st.container()
 
 # 채팅 히스토리 표시
 with chat_container:
-    display_chat_messages()
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
 # 새 사용자 입력 처리
 with input_container:
@@ -77,7 +76,10 @@ st.markdown("""
     padding-bottom: 0 !important;
 }
 .main {
-    padding-bottom: 4rem;
+    padding-bottom: 80px;
+}
+#root > div:nth-child(1) > div.withScreencast > div > div > div > section.main.css-uf99v8.egzxvld5 {
+    padding-bottom: 80px;
 }
 </style>
 """, unsafe_allow_html=True)
